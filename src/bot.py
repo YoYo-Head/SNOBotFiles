@@ -36,14 +36,15 @@ async def send_message(message, user_message, is_private):
         print(e)
 
 async def main():
+    
     await bot.load_extension("commands.infoSystem.info")
     print("Information Systems loaded!")
 
-    #await bot.load_extension("moderationsSystem.mod")
-    #print("Moderation System loaded!")
+    await bot.load_extension("commands.moderationsSystem.mod")
+    print("Moderation System loaded!")
 
-    #await bot.load_extension("promotionSystem.promo")
-    #print("Promotions System loaded!")
+    await bot.load_extension("commands.promotionSystem.promo")
+    print("Promotions System loaded!")
 
     await bot.start(SB.TOKEN)
 

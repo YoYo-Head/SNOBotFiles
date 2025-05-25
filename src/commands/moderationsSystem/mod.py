@@ -1,3 +1,3 @@
-import append as main
+from src import bot as m
 
 # COMING SOON!!!

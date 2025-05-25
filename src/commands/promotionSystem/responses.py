@@ -1,4 +1,3 @@
-import append as main
 import sys
 import json
 import time
