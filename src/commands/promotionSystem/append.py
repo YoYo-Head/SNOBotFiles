@@ -4,4 +4,4 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import bot as b
 
-print("PromotionSystems are connected!")
+print("PromotionSystems are working successfully!")

@@ -6,7 +6,7 @@ import config as cng
 
 m = main.bot
 bot = m.bot
-tree = m/bot
+tree = m.tree
 guildID = m.guildID
 
 promo_channel = cng.Promotions_Channel
