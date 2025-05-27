@@ -2,6 +2,7 @@ import discord
 import time
 from discord.ext import commands
 from src import bot as m
+from sklearn import tree
 
 bot = m.bot
 tree = m.tree
