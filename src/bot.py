@@ -40,8 +40,8 @@ async def main():
     await bot.load_extension("commands.infoSystem.info")
     print("Information Systems loaded!")
 
-    await bot.load_extension("commands.moderationsSystem.mod")
-    print("Moderation System loaded!")
+    #await bot.load_extension("commands.moderationsSystem.mod")
+    #print("Moderation System loaded!")
 
     await bot.load_extension("commands.promotionSystem.promo")
     print("Promotions System loaded!")
