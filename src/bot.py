@@ -9,10 +9,11 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import SnoBot as SB
+
+# Variables
 tk = SB.TOKEN
 intentData = discord.Intents.all()
 intentData.presences = False
-
 bot = commands.Bot(command_prefix='$', intents=intentData, application_id=1375429887288016896)
 guildID = SB.guildID
 

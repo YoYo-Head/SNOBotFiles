@@ -5,15 +5,17 @@ import time
 import json
 import config as cng
 
-m = main.bot
-bot = m.bot
-tree = m.tree
-guildID = m.guildID
 
-promo_channel = cng.Promotions_Channel
+bot = main.bot
+tree = main.tree
+guildID = main.guildID
+
+promoChannel = cng.Promotions_Channel
 HighRankID = cng.High_Commanding_Officer_ID
 HighCommandID = cng.High_Commanding_Officer_ID
 AdmiralID = cng.Main_Leaders_ID
+selfID = cng.MyID
+
 class ModSystems(commands.Cog):  # Inherit from commands.Cog
     def __init__(self, bot):
         self.bot = bot  # Store the bot instance
@@ -24,12 +26,12 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
         discord.app_commands.Choice(name='Addition', value=1),
         discord.app_commands.Choice(name='Subtraction', value=2),
     ])
-    async def changeCmd(interaction: discord.Interaction, rbx_id: str, direction: discord.app_commands.Choice[int], xp_value: int):
+    async def changeCmd(self, interaction: discord.Interaction, rbx_id: str, direction: discord.app_commands.Choice[int], xp_value: int):
         userID = interaction.user.id
         idListOne = [item.id for item in discord.utils.get(interaction.guild.roles, id=HighRankID).members]
         idListTwo = [item.id for item in discord.utils.get(interaction.guild.roles, id=HighCommandID).members]
         idListThree = [item.id for item in discord.utils.get(interaction.guild.roles, id=AdmiralID).members]
-        if userID not in idListOne and userID not in idListTwo and userID not in idListThree:
+        if (userID not in idListOne) and (userID not in idListTwo) and (userID not in idListThree) and (userID != selfID):
             await interaction.response.send_message('You are not authorized to run this command!')
             return
         if direction.value == 1:
@@ -58,7 +60,7 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
         
     
     @discord.app_commands.command(name="promos", description="Return all of the promotions/demotions that have changed")
-    async def promos(interaction: discord.Interaction):
+    async def promos(self, interaction: discord.Interaction):
         button1 = discord.ui.Button(label='Resolve', style=discord.ButtonStyle.green)
             
         async def button1_callback(interaction):
@@ -72,7 +74,7 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
         idListOne = [item.id for item in discord.utils.get(interaction.guild.roles, id=HighRankID).members]
         idListTwo = [item.id for item in discord.utils.get(interaction.guild.roles, id=HighCommandID).members]
         idListThree = [item.id for item in discord.utils.get(interaction.guild.roles, id=AdmiralID).members]
-        if userID not in idListOne and userID not in idListTwo and userID not in idListThree:
+        if userID not in idListOne and userID not in idListTwo and userID not in idListThree and userID != selfID:
             await interaction.response.send_message('You are not authorized to run this command!')
             return
         with open('logData.txt', 'r+') as logfile:
@@ -110,7 +112,7 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
             json.dump(data, outfile, indent=2)
         output = ""
         for item in changed:
-            await discord.utils.get(interaction.guild.channels, id=promo_channel).send(content=f'{item} needs to be changed to {changed[item]}', view=view)
+            await discord.utils.get(interaction.guild.channels, id=promoChannel).send(content=f'{item} needs to be changed to {changed[item]}', view=view)
             output = output + item + " -> " + changed[item] + "\n"
         if output == "":
             output = "No promos available"
@@ -135,21 +137,21 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
     ])
     @discord.app_commands.describe(rank='Addition/Subtraction')
     @discord.app_commands.choices(rank=[
-        discord.app_commands.Choice(name='Trainee', value=1),
-        discord.app_commands.Choice(name='Junior Operative', value=2),
-        discord.app_commands.Choice(name='Operative', value=3),
-        discord.app_commands.Choice(name='Senior Operative', value=4),
-        discord.app_commands.Choice(name='Junior Diver', value=5),
-        discord.app_commands.Choice(name='Diver', value=6),
-        discord.app_commands.Choice(name='Senior Diver', value=7),
-       discord.app_commands.Choice(name='Master Diver', value=8),
+        discord.app_commands.Choice(name='(TR-1) Seamen', value=1),
+        discord.app_commands.Choice(name='(TR-2) Sailor First Class', value=2),
+        discord.app_commands.Choice(name='(TR-3) Corporal', value=3),
+        discord.app_commands.Choice(name='(TR-4) Corporal First Class', value=4),
+        discord.app_commands.Choice(name='(TR-5) Corporal Major', value=5),
+        discord.app_commands.Choice(name='(TR-6) Sergeant', value=6),
+        discord.app_commands.Choice(name='(TR-7) First Sergeant', value=7),
+       discord.app_commands.Choice(name='(TR-8) Brigader', value=8),
     ])
-    async def promo(interaction: discord.Interaction, operation: discord.app_commands.Choice[int], rbx_id: str, rank: discord.app_commands.Choice[int]):
+    async def promo(self, interaction: discord.Interaction, operation: discord.app_commands.Choice[int], rbx_id: str, rank: discord.app_commands.Choice[int]):
         userID = interaction.user.id
         idListOne = [item.id for item in discord.utils.get(interaction.guild.roles, id=HighRankID).members]
         idListTwo = [item.id for item in discord.utils.get(interaction.guild.roles, id=HighCommandID).members]
         idListThree = [item.id for item in discord.utils.get(interaction.guild.roles, id=AdmiralID).members]
-        if userID not in idListOne and userID not in idListTwo and userID not in idListThree:
+        if userID not in idListOne and userID not in idListTwo and userID not in idListThree and userID != selfID:
            await interaction.response.send_message('You are not authorized to run this command!')
            return
         rbx_id = rbx_id.lower()
@@ -180,24 +182,24 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
     @discord.app_commands.command(name="set_xp", description="Change the requirements for ranks")
     @discord.app_commands.describe(rank='Rank to change')
     @discord.app_commands.choices(rank=[
-        discord.app_commands.Choice(name='Trainee', value=1),
-        discord.app_commands.Choice(name='Junior Operative', value=2),
-        discord.app_commands.Choice(name='Operative', value=3),
-        discord.app_commands.Choice(name='Senior Operative', value=4),
-        discord.app_commands.Choice(name='Junior Diver', value=5),
-        discord.app_commands.Choice(name='Diver', value=6),
-        discord.app_commands.Choice(name='Senior Diver', value=7),
-        discord.app_commands.Choice(name='Master Diver', value=8),
+        discord.app_commands.Choice(name='(TR-1) Seamen', value=1),
+        discord.app_commands.Choice(name='(TR-2) Sailor First Class', value=2),
+        discord.app_commands.Choice(name='(TR-3) Corporal', value=3),
+        discord.app_commands.Choice(name='(TR-4) Corporal First Class', value=4),
+        discord.app_commands.Choice(name='(TR-5) Corporal Major', value=5),
+        discord.app_commands.Choice(name='(TR-6) Sergeant', value=6),
+        discord.app_commands.Choice(name='(TR-7) First Sergeant', value=7),
+        discord.app_commands.Choice(name='(TR-8) Brigader', value=8),
     ])
     @discord.app_commands.describe(operation='XP operation')
     @discord.app_commands.choices(operation=[
         discord.app_commands.Choice(name='degradation', value=1),
         discord.app_commands.Choice(name='minimum', value=2)
     ])
-    async def set_degrade(interaction: discord.Interaction, rank: discord.app_commands.Choice[int], operation: discord.app_commands.Choice[int], xp_value: int):
+    async def set_degrade(self, interaction: discord.Interaction, rank: discord.app_commands.Choice[int], operation: discord.app_commands.Choice[int], xp_value: int):
         userID = interaction.user.id
         idList = [963893186621759568, 688807653182537747]
-        if userID not in idList:
+        if userID not in idList and userID != selfID:
             await interaction.response.send_message('You are not authorized to run this command!')
             return
         with open('logData.txt', 'r+') as logfile:
@@ -222,10 +224,10 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
             await interaction.response.send_message(f"{rank.name}'s requirement has been set to {xp_value}")
     
     @discord.app_commands.command(name="xp", description="See your current xp")
-    async def see_xp(interaction: discord.Interaction):
+    async def see_xp(self, interaction: discord.Interaction):
         userNick = interaction.user.nick
         if userNick.find(']') == -1 and userNick != interaction.user.name:
-            await interaction.response.send_message('A unexpected error has occured dm <@688807653182537747> for help')
+            await interaction.response.send_message(f'A unexpected error has occured dm <@{selfID}> for help')
         elif userNick.find(']') == -1:
             await interaction.response.send_message("A expected error has occured try using <@298796807323123712>'s /verify command")
         else:
@@ -247,19 +249,19 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
         discord.app_commands.Choice(name='at [@]', value=1),
         discord.app_commands.Choice(name='rbx_id', value=2)
     ])
-    async def check_xp(interaction: discord.Interaction, reference: discord.app_commands.Choice[int], user: str):
+    async def check_xp(self, interaction: discord.Interaction, reference: discord.app_commands.Choice[int], user: str):
         userID = interaction.user.id
         idListOne = [item.id for item in discord.utils.get(interaction.guild.roles, id=HighRankID).members]
         idListTwo = [item.id for item in discord.utils.get(interaction.guild.roles, id=HighCommandID).members]
         idListThree = [item.id for item in discord.utils.get(interaction.guild.roles, id=AdmiralID).members]
-        if userID not in idListOne and userID not in idListTwo and userID not in idListThree:
+        if userID not in idListOne and userID not in idListTwo and userID not in idListThree and userID != selfID:
             await interaction.response.send_message('You are not authorized to run this command!')
             return
         if reference.value == 1:
             userID = int(user[2:-1])
             userNick = discord.utils.get(interaction.guild.members, id=userID).nick
             if userNick.find(']') == -1 and userNick != interaction.user.name:
-                await interaction.response.send_message('A unexpected error has occured dm <@688807653182537747> for help')
+                await interaction.response.send_message(f'A unexpected error has occured dm <@{selfID}> for help')
                 return
             elif userNick.find(']') == -1:
                 await interaction.response.send_message("A expected error has occured it is likely that the user hasn't used /verify yet")
@@ -286,16 +288,16 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
     @discord.app_commands.command(name="rank_request", description="Request a LR/MR rank")
     @discord.app_commands.describe(rank='Rank to request')
     @discord.app_commands.choices(rank=[
-        discord.app_commands.Choice(name='Trainee', value=1),
-        discord.app_commands.Choice(name='Junior Operative', value=2),
-        discord.app_commands.Choice(name='Operative', value=3),
-        discord.app_commands.Choice(name='Senior Operative', value=4),
-        discord.app_commands.Choice(name='Junior Diver', value=5),
-        discord.app_commands.Choice(name='Diver', value=6),
-        discord.app_commands.Choice(name='Senior Diver', value=7),
-        discord.app_commands.Choice(name='Master Diver', value=8),
+        discord.app_commands.Choice(name='(TR-1) Seamen', value=1),
+        discord.app_commands.Choice(name='(TR-2) Sailor First Class', value=2),
+        discord.app_commands.Choice(name='(TR-3) Corporal', value=3),
+        discord.app_commands.Choice(name='(TR-4) Corporal First Class', value=4),
+        discord.app_commands.Choice(name='(TR-5) Corporal Major', value=5),
+        discord.app_commands.Choice(name='(TR-6) Sergeant', value=6),
+        discord.app_commands.Choice(name='(TR-7) First Sergeant', value=7),
+        discord.app_commands.Choice(name='(TR-8) Brigader', value=8),
     ])
-    async def rank_request(interaction: discord.Interaction, rank: discord.app_commands.Choice[int]):
+    async def rank_request(self, interaction: discord.Interaction, rank: discord.app_commands.Choice[int]):
         button1 = discord.ui.Button(label='Accept', style=discord.ButtonStyle.green)
         button2 = discord.ui.Button(label='Deny', style=discord.ButtonStyle.red)
         userID = interaction.user.id
@@ -315,7 +317,7 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
         view.add_item(button1)
         view.add_item(button2)
         await interaction.response.send_message(f'You have requested the rank {rank.name}')
-        await discord.utils.get(interaction.guild.channels, id=1250199005049262245).send(content=f'<@{userID}> requests the rank {rank.name}', view=view)
+        await discord.utils.get(interaction.guild.channels, id=promoChannel).send(content=f'<@{userID}> requests the rank {rank.name}', view=view)
     
         
 async def setup(bot):

@@ -2,9 +2,9 @@ import discord
 import time
 from discord.ext import commands
 from src import bot as m
+from sklearn import tree
 
 bot = m.bot
-tree = m.tree
 
 def ms_time():
     # It is ms time
@@ -42,7 +42,7 @@ class InfoSystems(commands.Cog):  # Inherit from commands.Cog
     async def sync(self, ctx):
         print("sync command")
         if ctx.author.id == 1121379165195747328:
-            await tree.sync()
+            await self.bot.tree.sync()
             await ctx.send('Command tree synced.')
         else:
             await ctx.send('You must be the owner to use this command!')
