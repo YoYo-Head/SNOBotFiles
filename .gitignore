@@ -13,3 +13,6 @@ Thumbs.db
 # Virtual environment folder (if you use one)
 venv/
 env/
+
+# log files
+logData.txt
