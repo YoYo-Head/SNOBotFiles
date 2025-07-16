@@ -16,3 +16,4 @@ env/
 
 # log files
 logData.txt
+.json

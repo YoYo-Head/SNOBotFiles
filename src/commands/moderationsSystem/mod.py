@@ -54,3 +54,7 @@ class ModerationSystem(commands.Cog):
         else:
             await ctx.send(f'An error occurred while trying to unban {member}.')
             print(f'Error with unbanning {member}: {permission}')
+
+# Required setup function for Discord.py to load the cog
+async def setup(bot):
+    await bot.add_cog(ModerationSystem(bot))  # Register the cog
