@@ -20,11 +20,9 @@ class QuotaSystems(commands.Cog):
         discord.app_commands.Choice(name='rbx_id', value=2)
         ])
     async def add_quota(self, interaction: discord.Interaction, reference: discord.app_commands.Choice[int], user: str, quota: int):
-        print('stage zero')
         if interaction.user.id not in permsList:
             await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
             return
-        print('stage one')
         
         if reference.value == 1:
             userID = int(user[2:-1])
@@ -40,16 +38,13 @@ class QuotaSystems(commands.Cog):
         else:
             userNick = user
 
-        print('stage two')
         
         if quota < 0:
             await interaction.response.send_message("Quota cannot be negative.", ephemeral=True)
             return
         
         with open('officerData.json', 'r') as infile:
-            print('reading')
             data = json.load(infile)
-            print('reading complete')
     
         
         if userNick in data:
@@ -58,10 +53,8 @@ class QuotaSystems(commands.Cog):
             data[userNick] = quota
         
         with open('officerData.json', 'w') as outfile:
-            print('writing')
             json.dump(data, outfile, indent=4)
-            print('writing complete')
-        
+            
         await interaction.response.send_message(f"Added {quota} QP to {userNick}'s quota.")
 
 # Required setup function for Discord.py to load the cog
