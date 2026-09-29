@@ -1,14 +1,9 @@
-from src import bot as main
 import discord
 from discord.ext import commands
 import time
 import json
 import config as cng
 
-
-bot = main.bot
-tree = main.tree
-guildID = main.guildID
 
 promoChannel = cng.Promotions_Channel
 HighRankID = cng.High_Commanding_Officer_ID
@@ -39,21 +34,19 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
         else:
             directionVar = 'subtracted from'
         rbx_id = rbx_id.lower()
-        with open('logData.txt', 'r+') as logfile:
-            logdata = logfile.read()
-            logfile.seek(0, 0)
-            logfile.write(logdata + f'<t:{int(time.time())}:f> {interaction.user.name}: change {rbx_id} {direction.name} {xp_value} \n')
+        with open('logData.txt', 'a') as logfile:
+            logfile.write(f'<t:{int(time.time())}:f> {interaction.user.name}: change {rbx_id} {direction.name} {xp_value}\n')
         with open('playerData.json', 'r') as infile:
             data = json.load(infile)
+        try:
+            if direction.value == 1:
+                data[rbx_id] = [data[rbx_id][0] + xp_value, data[rbx_id][1], data[rbx_id][2]]
+            else:
+                data[rbx_id] = [data[rbx_id][0] - xp_value, data[rbx_id][1], data[rbx_id][2]]
+            result = f'{xp_value} xp {directionVar} {rbx_id}!'
+        except KeyError:
+            result = f'{rbx_id} could not be found'
         with open('playerData.json', 'w') as outfile:
-            try:
-                if direction.value == 1:
-                    data[rbx_id] = [data[rbx_id][0] + xp_value, data[rbx_id][1], data[rbx_id][2]]
-                else:
-                    data[rbx_id] = [data[rbx_id][0] - xp_value, data[rbx_id][1], data[rbx_id][2]]
-                result = f'{xp_value} xp {directionVar} {rbx_id}!'
-            except:
-                result = f'{rbx_id} could not be found'
             json.dump(data, outfile, indent=2)
         await interaction.response.send_message(result)
     
@@ -77,10 +70,8 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
         if userID not in idListOne and userID not in idListTwo and userID not in idListThree and userID != selfID:
             await interaction.response.send_message('You are not authorized to run this command!')
             return
-        with open('logData.txt', 'r+') as logfile:
-            logdata = logfile.read()
-            logfile.seek(0, 0)
-            logfile.write(logdata + f'<t:{int(time.time())}:f> {interaction.user.name}: promos \n')
+        with open('logData.txt', 'a') as logfile:
+            logfile.write(f'<t:{int(time.time())}:f> {interaction.user.name}: promos\n')
         with open('playerData.json', 'r') as infile:
             data = json.load(infile)
         with open('playerData.json', 'w') as outfile:
@@ -155,10 +146,8 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
            await interaction.response.send_message('You are not authorized to run this command!')
            return
         rbx_id = rbx_id.lower()
-        with open('logData.txt', 'r+') as logfile:
-            logdata = logfile.read()
-            logfile.seek(0, 0)
-            logfile.write(logdata + f'<t:{int(time.time())}:f> {interaction.user.name}: promo {operation.name} {rbx_id} {rank.name} \n')
+        with open('logData.txt', 'a') as logfile:
+            logfile.write(f'<t:{int(time.time())}:f> {interaction.user.name}: promo {operation.name} {rbx_id} {rank.name}\n')
         with open('playerData.json', 'r') as infile:
             data = json.load(infile)
         with open('playerData.json', 'w') as outfile:
@@ -202,10 +191,8 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
         if userID not in idList and userID != selfID:
             await interaction.response.send_message('You are not authorized to run this command!')
             return
-        with open('logData.txt', 'r+') as logfile:
-            logdata = logfile.read()
-            logfile.seek(0, 0)
-            logfile.write(logdata + f'<t:{int(time.time())}:f> {interaction.user.name}: set_xp {rank.name} {operation.name} {xp_value} \n')
+        with open('logData.txt', 'a') as logfile:
+            logfile.write(f'<t:{int(time.time())}:f> {interaction.user.name}: set_xp {rank.name} {operation.name} {xp_value}\n')
         if operation.value == 1:
             with open('rankData.json', 'r') as infile:
                data = json.load(infile)

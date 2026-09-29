@@ -1,50 +1,50 @@
 {
-  "(TR-1) Seamen": [
+  "[OR-1] Initiative": [
     0,
     0,
     "LR",
-    1228760710276845669
+    1273649443115237517
   ],
-  "(TR-2) Sailor First Class": [
+  "[OR-2] Junior Operative": [
     1,
     0,
     "LR",
-    1228760450691498104
+    1273649442179776594
   ],
-  "(TR-3) Corporal": [
+  "[OR-3] Operative": [
     2,
     0,
     "LR",
-    1228827152556752986
+    1273649441253097552
   ],
-  "(TR-4) Corporal First Class": [
+  "[OR-4] Senior Operative": [
     3,
     0,
     "LR",
-    1228760868938977370
+    1273649440112246855
   ],
-  "(TR-5) Corporal Major": [
+  "[OR-5] Scuba Diver": [
     5,
     0,
     "MR",
-    1231422614577352715
+    1273649437951918192
   ],
-  "(TR-6) Sergeant": [
+  "[OR-6] Open Water Diver": [
     7,
     0,
     "MR",
-    1231423352480993440
+    553640975730343986
   ],
-  "(TR-7) First Sergeant": [
+  "[OR-7] Advanced Open Water Diver": [
     9,
     0,
     "MR",
-    1243066145842659378
+    1273649436236582952
   ],
-  "(TR-8) Brigader": [
+  "[OR-8] Master Scuber Diver": [
     12,
     0,
     "MR",
-    1231423845659836459
+    1273649435011842119
   ]
 }

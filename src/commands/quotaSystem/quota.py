@@ -1,7 +1,5 @@
-from src import bot as main
 import discord
 from discord.ext import commands
-import time
 import json
 import config as cng
 
@@ -25,12 +23,16 @@ class QuotaSystems(commands.Cog):
             return
         
         if reference.value == 1:
-            userID = int(user[2:-1])
-            userNick = discord.utils.get(interaction.guild.members, id=userID).nick
-            if userNick.find(']') == -1 and userNick != interaction.user.name:
+            userID = int(user.strip('<@!>'))
+            member = interaction.guild.get_member(userID)
+            if member is None or member.nick is None:
+                await interaction.response.send_message("Couldn't find that member or their server nickname.", ephemeral=True)
+                return
+            userNick = member.nick
+            if ']' not in userNick and userNick != interaction.user.name:
                 await interaction.response.send_message(f'A unexpected error has occured dm <@{selfID}> for help')
                 return
-            elif userNick.find(']') == -1:
+            elif ']' not in userNick:
                 await interaction.response.send_message("A expected error has occured it is likely that the user hasn't used /verify yet")
                 return
             else:
@@ -59,4 +61,4 @@ class QuotaSystems(commands.Cog):
 
 # Required setup function for Discord.py to load the cog
 async def setup(bot):
-    await bot.add_cog(QuotaSystems(bot))  # Register the cog
+    await bot.add_cog(QuotaSystems(bot))

@@ -1,56 +1,56 @@
-from http.client import responses
 import asyncio
 import discord
 from discord.ext import commands
-from sklearn import tree
-import sys
-import os
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 import SnoBot as SB
 
-# Variables
-tk = SB.TOKEN
-intentData = discord.Intents.all()
-intentData.presences = False
-bot = commands.Bot(command_prefix='$', intents=intentData, application_id=1375429887288016896)
-guildID = SB.guildID
+APPLICATION_ID = int(SB.applicationID) if SB.applicationID else 1331105983090659399
+GUILD_ID = int(SB.guildID) if SB.guildID else 1273454632382759046
+STATUS_CHANNEL_ID = 1273454633033142295
 
-print(dir(discord))
-print(dir(discord.ext))
+intents = discord.Intents.default()
+intents.members = True
+intents.message_content = True
+bot = commands.Bot(command_prefix='$', intents=intents, application_id=APPLICATION_ID)
 
 @bot.event
 async def on_ready():
-    channel = bot.get_channel(1273454633033142295)
+    print(f"Logged in as {bot.user} (application {bot.application_id})")
     try:
-        synced = await bot.tree.sync(guild=discord.Object(id=guildID))
-        print(f"Synced {len(synced)} commands to the guild.")   
+        guild = discord.Object(id=GUILD_ID)
+        bot.tree.copy_global_to(guild=guild)
+        synced = await bot.tree.sync(guild=guild)
+        print(f"Synced {len(synced)} commands to guild {GUILD_ID}.")
     except Exception as e:
         print(f"Failed to sync commands: {e}")
-    await channel.send('The bot is now **ONLINE** and ready to be used!')
-
-async def send_message(message, user_message, is_private):
-    try:
-        await message.author.send(responses.handle_response(user_message)) if is_private else await message.channel.send(responses.handle_response(user_message))
-    except Exception as e:
-        print(e)
+    channel = bot.get_channel(STATUS_CHANNEL_ID)
+    if channel is not None:
+        await channel.send('The bot is now **ONLINE** and ready to be used!')
 
 async def main():
-    
-    await bot.load_extension("commands.infoSystem.info")
+
+    await bot.load_extension("src.commands.infoSystem.info")
     print("Information Systems loaded!")
 
-    await bot.load_extension("commands.moderationsSystem.mod")
+    await bot.load_extension("src.commands.moderationsSystem.mod")
     print("Moderation System loaded!")
 
-    await bot.load_extension("commands.promotionSystem.promo")
+    await bot.load_extension("src.commands.promotionSystem.promo")
     print("Promotions System loaded!")
 
-    await bot.load_extension("commands.quotaSystem.quota")
+    await bot.load_extension("src.commands.quotaSystem.quota")
     print("Quota System loaded!")
 
-    await bot.start(SB.TOKEN)
+    print("Commands currently registered:")
 
+    for command in bot.tree.get_commands():
+        print(f" - {command.name}")
+
+    print(f"Total commands: {len(bot.tree.get_commands())}")
+    if not SB.TOKEN:
+        raise RuntimeError("DISCORD_TOKEN is not set. Set it in the environment or .env file.")
+
+    async with bot:
+        await bot.start(SB.TOKEN)
 if __name__ == "__main__":
     asyncio.run(main())
+
