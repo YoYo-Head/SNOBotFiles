@@ -23,8 +23,8 @@ async def on_ready():
     except Exception as e:
         print(f"Failed to sync commands: {e}")
     channel = bot.get_channel(STATUS_CHANNEL_ID)
-    if channel is not None:
-        await channel.send('The bot is now **ONLINE** and ready to be used!')
+    """if channel is not None:
+        await channel.send('The bot is now **ONLINE** and ready to be used!')"""
 
 async def main():
 

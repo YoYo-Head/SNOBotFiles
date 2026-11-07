@@ -1,8 +1,15 @@
 import discord
 from discord.ext import commands
+import asyncio
 import time
 import json
 import config as cng
+from .roblox_api import (
+    RobloxAPIError,
+    assign_user_role,
+    get_group_rank,
+    promote_user,
+)
 
 
 promoChannel = cng.Promotions_Channel
@@ -36,19 +43,70 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
         rbx_id = rbx_id.lower()
         with open('logData.txt', 'a') as logfile:
             logfile.write(f'<t:{int(time.time())}:f> {interaction.user.name}: change {rbx_id} {direction.name} {xp_value}\n')
+        await interaction.response.defer()
         with open('playerData.json', 'r') as infile:
             data = json.load(infile)
-        try:
-            if direction.value == 1:
-                data[rbx_id] = [data[rbx_id][0] + xp_value, data[rbx_id][1], data[rbx_id][2]]
+
+        with open('rankData.json', 'r') as rankInfile:
+            rankData = json.load(rankInfile)
+
+        player_name = rbx_id
+        user_id = None
+        if rbx_id not in data:
+            if direction.value != 1:
+                await interaction.followup.send(f'{rbx_id} could not be found')
+                return
+            try:
+                player_name, current_rank, user_id = await asyncio.to_thread(
+                    get_group_rank, rbx_id
+                )
+            except RobloxAPIError as exc:
+                await interaction.followup.send(f'Could not add {rbx_id}: {exc}')
+                return
+            if current_rank not in rankData:
+                await interaction.followup.send(
+                    f'Could not add {player_name}: their Roblox rank is not configured in rankData.json.'
+                )
+                return
+            rbx_id = player_name.lower()
+            data[rbx_id] = [rankData[current_rank][0], time.time(), current_rank]
+
+        if direction.value == 1:
+            data[rbx_id][0] += xp_value
+        else:
+            data[rbx_id][0] -= xp_value
+        data[rbx_id][1] = time.time()
+        current_rank = data[rbx_id][2]
+        result = f'{xp_value} xp {directionVar} {player_name}!'
+
+        rank_names = list(rankData)
+        current_position = rank_names.index(current_rank)
+        target_rank = current_rank
+        for rank_name in rank_names:
+            if rankData[rank_name][0] <= data[rbx_id][0]:
+                target_rank = rank_name
+
+        if rank_names.index(target_rank) > current_position:
+            if user_id is not None:
+                succeeded, promotion_result = await asyncio.to_thread(
+                    assign_user_role, user_id, target_rank
+                )
             else:
-                data[rbx_id] = [data[rbx_id][0] - xp_value, data[rbx_id][1], data[rbx_id][2]]
-            result = f'{xp_value} xp {directionVar} {rbx_id}!'
-        except KeyError:
-            result = f'{rbx_id} could not be found'
+                succeeded, promotion_result = await asyncio.to_thread(
+                    promote_user, player_name, target_rank
+                )
+            if succeeded:
+                data[rbx_id][2] = target_rank
+                result += f'\nAutomatically promoted to {target_rank}.'
+            else:
+                result += (
+                    f'\nCould not automatically promote to {target_rank}: {promotion_result} '
+                    'The promotion will be retried the next time /promos runs.'
+                )
+
         with open('playerData.json', 'w') as outfile:
             json.dump(data, outfile, indent=2)
-        await interaction.response.send_message(result)
+        await interaction.followup.send(result)
     
         
     
@@ -72,43 +130,73 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
             return
         with open('logData.txt', 'a') as logfile:
             logfile.write(f'<t:{int(time.time())}:f> {interaction.user.name}: promos\n')
+        await interaction.response.defer()
         with open('playerData.json', 'r') as infile:
             data = json.load(infile)
+        with open('rankData.json', 'r') as rankInfile:
+            rankData = json.load(rankInfile)
+
+        removed = []
+        changed = {}
+        previousRanks = {}
+        rankPositions = {rank_name: index for index, rank_name in enumerate(rankData)}
+        for item in data:
+            if data[item][0] == 0:
+                removed.append(item)
+                continue
+            elapsedTime = time.time() - data[item][1]
+            data[item][1] = time.time()
+            data[item][0] = data[item][0] - (rankData[data[item][2]][1] / 24 / 60 / 60 * elapsedTime)
+            if data[item][0] < 0:
+                data[item][0] = 0
+            reverseKeyData = list(rankData.keys())
+            reverseKeyData.reverse()
+            for i in reverseKeyData:
+                if rankData[i][0] <= data[item][0]:
+                    if data[item][2] != i:
+                        previousRanks[item] = data[item][2]
+                        data[item][2] = i
+                        changed[item] = i
+                    break
+
+        for item in removed:
+            data.pop(item)
+
+        messages = {}
+        manual_changes = set()
+        for item, new_rank in changed.items():
+            old_rank = previousRanks[item]
+            old_position = rankPositions.get(old_rank)
+            new_position = rankPositions.get(new_rank)
+            if old_position is not None and new_position is not None and new_position > old_position:
+                succeeded, result = await asyncio.to_thread(promote_user, item, new_rank)
+                if succeeded:
+                    messages[item] = f'{item} was automatically promoted to {new_rank}.'
+                else:
+                    data[item][2] = old_rank
+                    messages[item] = (
+                        f'Could not automatically promote {item} to {new_rank}: {result} '
+                        'The promotion will be retried the next time /promos runs.'
+                    )
+            else:
+                messages[item] = f'{item} needs to be changed to {new_rank}'
+                manual_changes.add(item)
+
         with open('playerData.json', 'w') as outfile:
-            removed = []
-            changed = {}
-            for item in data:
-                if data[item][0] == 0:
-                    removed.append(item)
-                    continue
-                elapsedTime = time.time() - data[item][1]
-                data[item][1] = time.time()
-                with open('rankData.json', 'r') as rankInfile:
-                    rankData = json.load(rankInfile)
-                    data[item][0] = data[item][0] - (rankData[data[item][2]][1] / 24 / 60 / 60 * elapsedTime)
-                    if data[item][0] < 0:
-                        data[item][0] = 0
-                    reverseKeyData = list(rankData.keys())
-                    reverseKeyData.reverse()
-                    for i in reverseKeyData:
-                        print(rankData[i])
-                        print(data[item])
-                        if rankData[i][0] <= data[item][0]:
-                            if data[item][2] != i:
-                                data[item][2] = i
-                                changed[item] = i
-                            break
-            for item in removed:
-                data.pop(item)
             json.dump(data, outfile, indent=2)
+
         output = ""
-        for item in changed:
-            await discord.utils.get(interaction.guild.channels, id=promoChannel).send(content=f'{item} needs to be changed to {changed[item]}', view=view)
-            output = output + item + " -> " + changed[item] + "\n"
+        promotion_channel = discord.utils.get(interaction.guild.channels, id=promoChannel)
+        for item, message in messages.items():
+            if item in manual_changes:
+                await promotion_channel.send(content=message, view=view)
+            else:
+                await promotion_channel.send(content=message)
+            output += message + "\n"
         if output == "":
             output = "No promos available"
-        output = output + f" <t:{int(time.time())}:R>"
-        await interaction.response.send_message(output)
+        output += f" <t:{int(time.time())}:R>"
+        await interaction.followup.send(output)
     
     
         #take last time point and find elapsed time subtract from xp
@@ -128,14 +216,13 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
     ])
     @discord.app_commands.describe(rank='Addition/Subtraction')
     @discord.app_commands.choices(rank=[
-        discord.app_commands.Choice(name='(TR-1) Seamen', value=1),
-        discord.app_commands.Choice(name='(TR-2) Sailor First Class', value=2),
-        discord.app_commands.Choice(name='(TR-3) Corporal', value=3),
-        discord.app_commands.Choice(name='(TR-4) Corporal First Class', value=4),
-        discord.app_commands.Choice(name='(TR-5) Corporal Major', value=5),
-        discord.app_commands.Choice(name='(TR-6) Sergeant', value=6),
-        discord.app_commands.Choice(name='(TR-7) First Sergeant', value=7),
-       discord.app_commands.Choice(name='(TR-8) Brigader', value=8),
+        discord.app_commands.Choice(name='[OR-1] Initiative', value=1),
+        discord.app_commands.Choice(name='[OR-2] Junior Operative', value=2),
+        discord.app_commands.Choice(name='[OR-3] Operative', value=3),
+        discord.app_commands.Choice(name='[OR-4] Senior Operative', value=4),
+        discord.app_commands.Choice(name='[OR-5] Scuba Diver', value=5),
+        discord.app_commands.Choice(name='[OR-6] Open Water Diver', value=6),
+        discord.app_commands.Choice(name='[OR-7] Advanced Open Water Diver', value=7)
     ])
     async def promo(self, interaction: discord.Interaction, operation: discord.app_commands.Choice[int], rbx_id: str, rank: discord.app_commands.Choice[int]):
         userID = interaction.user.id
@@ -148,8 +235,10 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
         rbx_id = rbx_id.lower()
         with open('logData.txt', 'a') as logfile:
             logfile.write(f'<t:{int(time.time())}:f> {interaction.user.name}: promo {operation.name} {rbx_id} {rank.name}\n')
+
         with open('playerData.json', 'r') as infile:
             data = json.load(infile)
+
         with open('playerData.json', 'w') as outfile:
             if operation.value == 1:
                 try:
@@ -171,14 +260,13 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
     @discord.app_commands.command(name="set_xp", description="Change the requirements for ranks")
     @discord.app_commands.describe(rank='Rank to change')
     @discord.app_commands.choices(rank=[
-        discord.app_commands.Choice(name='(TR-1) Seamen', value=1),
-        discord.app_commands.Choice(name='(TR-2) Sailor First Class', value=2),
-        discord.app_commands.Choice(name='(TR-3) Corporal', value=3),
-        discord.app_commands.Choice(name='(TR-4) Corporal First Class', value=4),
-        discord.app_commands.Choice(name='(TR-5) Corporal Major', value=5),
-        discord.app_commands.Choice(name='(TR-6) Sergeant', value=6),
-        discord.app_commands.Choice(name='(TR-7) First Sergeant', value=7),
-        discord.app_commands.Choice(name='(TR-8) Brigader', value=8),
+        discord.app_commands.Choice(name='[OR-1] Initiative', value=1),
+        discord.app_commands.Choice(name='[OR-2] Junior Operative', value=2),
+        discord.app_commands.Choice(name='[OR-3] Operative', value=3),
+        discord.app_commands.Choice(name='[OR-4] Senior Operative', value=4),
+        discord.app_commands.Choice(name='[OR-5] Scuba Diver', value=5),
+        discord.app_commands.Choice(name='[OR-6] Open Water Diver', value=6),
+        discord.app_commands.Choice(name='[OR-7] Advanced Open Water Diver', value=7)
     ])
     @discord.app_commands.describe(operation='XP operation')
     @discord.app_commands.choices(operation=[
@@ -275,14 +363,13 @@ class ModSystems(commands.Cog):  # Inherit from commands.Cog
     @discord.app_commands.command(name="rank_request", description="Request a LR/MR rank")
     @discord.app_commands.describe(rank='Rank to request')
     @discord.app_commands.choices(rank=[
-        discord.app_commands.Choice(name='(TR-1) Seamen', value=1),
-        discord.app_commands.Choice(name='(TR-2) Sailor First Class', value=2),
-        discord.app_commands.Choice(name='(TR-3) Corporal', value=3),
-        discord.app_commands.Choice(name='(TR-4) Corporal First Class', value=4),
-        discord.app_commands.Choice(name='(TR-5) Corporal Major', value=5),
-        discord.app_commands.Choice(name='(TR-6) Sergeant', value=6),
-        discord.app_commands.Choice(name='(TR-7) First Sergeant', value=7),
-        discord.app_commands.Choice(name='(TR-8) Brigader', value=8),
+        discord.app_commands.Choice(name='[OR-1] Initiative', value=1),
+        discord.app_commands.Choice(name='[OR-2] Junior Operative', value=2),
+        discord.app_commands.Choice(name='[OR-3] Operative', value=3),
+        discord.app_commands.Choice(name='[OR-4] Senior Operative', value=4),
+        discord.app_commands.Choice(name='[OR-5] Scuba Diver', value=5),
+        discord.app_commands.Choice(name='[OR-6] Open Water Diver', value=6),
+        discord.app_commands.Choice(name='[OR-7] Advanced Open Water Diver', value=7)
     ])
     async def rank_request(self, interaction: discord.Interaction, rank: discord.app_commands.Choice[int]):
         button1 = discord.ui.Button(label='Accept', style=discord.ButtonStyle.green)
